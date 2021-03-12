@@ -1,0 +1,11 @@
+{
+  "include": ["src"],
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "commonjs",
+    "pretty": true,
+    "declaration": true,
+    "strict": true,
+    "strictNullChecks": true,
+  }
+}

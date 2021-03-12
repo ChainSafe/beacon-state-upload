@@ -1,0 +1,24 @@
+{
+  "name": "@chainsafe/beacon-state-upload",
+  "version": "0.0.1",
+  "description": "Upload beacon state to IPFS",
+  "license": "MIT",
+  "bin": {
+    "beacon-state-upload": "lib/index.js"
+  },
+  "main": "lib/index.js",
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "build": "tsc --outDir lib"
+  },
+  "dependencies": {
+    "form-data": "4.0.0",
+    "node-fetch": "2.6.1"
+  },
+  "devDependencies": {
+    "@types/node-fetch": "^2.5.8",
+    "typescript": "^4.2.3"
+  }
+}
