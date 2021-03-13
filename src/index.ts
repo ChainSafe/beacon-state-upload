@@ -1,8 +1,8 @@
 import fetch from "node-fetch";
 import FormData = require("form-data");
 
-export const BEACON_URL = "http://localhost:9597";
-export const IPFS_URL = "http://localhost:5001";
+export const BEACON_URL = process.argv[2] || "http://localhost:9597";
+export const IPFS_URL = process.argv[3] || "http://localhost:5001";
 
 const HEAD_FINALITY_CHECKPOINTS_PATH = "/eth/v1/beacon/states/head/finality_checkpoints";
 const STATE_PATH = "/eth/v1/debug/beacon/states/";
