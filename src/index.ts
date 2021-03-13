@@ -1,8 +1,8 @@
 import fetch from "node-fetch";
 import FormData = require("form-data");
 
-let BEACON_URL = process.argv[2] || "http://localhost:9597";
-let IPFS_URL = process.argv[3] || "http://localhost:5001";
+let BEACON_URL = process.argv[2] || process.env.BEACON_URL || "http://localhost:9597";
+let IPFS_URL = process.argv[3] || process.env.IPFS_URL || "http://localhost:5001";
 
 const HEAD_FINALITY_CHECKPOINTS_PATH = "/eth/v1/beacon/states/head/finality_checkpoints";
 const STATE_PATH = "/eth/v1/debug/beacon/states/";
@@ -29,10 +29,10 @@ interface IPFSPublishIPNSResponse {
 
 function verifyVariables(): void {
   if (!/^(http|https):\/\/[^ "]+$/.test(BEACON_URL)) {
-    throw new Error("Invalid url for beacon chain url");
+    throw new Error(`Invalid url for beacon chain url: ${BEACON_URL}`);
   }
   if (!/^(http|https):\/\/[^ "]+$/.test(IPFS_URL)) {
-    throw new Error("Invalid url for IPFS url");
+    throw new Error(`Invalid url for IPFS url: ${IPFS_URL}`);
   }
 }
 
