@@ -7,5 +7,6 @@
     "declaration": true,
     "strict": true,
     "strictNullChecks": true,
+    "esModuleInterop": true,
   }
 }
