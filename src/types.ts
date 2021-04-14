@@ -2,13 +2,7 @@ import {phase0} from "@chainsafe/lodestar-types";
 
 export enum BeaconEventType {
   FINALIZED_CHECKPOINT = "finalized_checkpoint",
-  // BLOCK = "block",
 }
-
-// export type BeaconBlockEvent = {
-//   type: typeof BeaconEventType.BLOCK;
-//   message: phase0.BlockEventPayload;
-// };
 
 export type FinalizedCheckpointEvent = {
   type: typeof BeaconEventType.FINALIZED_CHECKPOINT;
