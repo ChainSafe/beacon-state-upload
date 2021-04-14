@@ -11,12 +11,18 @@
     "lib"
   ],
   "scripts": {
-    "build": "tsc --outDir lib"
+    "build": "tsc --outDir lib",
+    "lint": "eslint --color --ext .ts src/",
+    "lint:fix": "eslint --color --fix --ext .ts src/"
   },
   "dependencies": {
     "@chainsafe/lodestar-config": "^0.19.0",
     "@chainsafe/lodestar-params": "^0.19.0",
     "@chainsafe/lodestar-types": "^0.18.0",
+    "@typescript-eslint/eslint-plugin": "^4.22.0",
+    "@typescript-eslint/parser": "^4.22.0",
+    "eslint": "^7.24.0",
+    "eslint-plugin-import": "^2.22.1",
     "eventsource": "^1.1.0",
     "form-data": "4.0.0",
     "node-fetch": "2.6.1",
