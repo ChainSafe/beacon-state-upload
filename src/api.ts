@@ -1,11 +1,23 @@
 import EventSource from "eventsource";
 import {IBeaconParams} from "@chainsafe/lodestar-params";
 import fetch from "node-fetch";
-import FormData = require("form-data");
-import {ADD_FILE_PATH, BEACON_URL, CONFIG_SPEC_PATH, EVENT_STREAM_PATH, HEAD_FINALITY_CHECKPOINTS_PATH, IPFS_URL, NODE_SYNCED_PATH, PUBLISH_IPNS_PATH, SLOTS_PER_EPOCH, STATE_PATH, WS_EPOCH_PATH} from "./constants";
+import FormData from "form-data";
+import {
+  ADD_FILE_PATH,
+  BEACON_URL,
+  CONFIG_SPEC_PATH,
+  EVENT_STREAM_PATH,
+  HEAD_FINALITY_CHECKPOINTS_PATH,
+  IPFS_URL,
+  NODE_SYNCED_PATH,
+  PUBLISH_IPNS_PATH,
+  STATE_PATH,
+  WS_EPOCH_PATH
+} from "./constants";
 import {BeaconEventType, Checkpoint, IPFSAddResponse, IPFSPublishIPNSResponse} from "./types";
 import {urlJoin} from "./utils";
-import {Epoch} from "@chainsafe/lodestar-types";
+import {Epoch, phase0} from "@chainsafe/lodestar-types";
+import {IBeaconConfig} from "@chainsafe/lodestar-config";
 
 export async function getSpec(): Promise<IBeaconParams> {
   const resp = await fetch(BEACON_URL + CONFIG_SPEC_PATH);
@@ -33,13 +45,13 @@ export async function getWSEpoch(): Promise<Epoch> {
   if (resp.status !== 200) {
     throw new Error("Unable to fetch node sync status");
   }
-  const respJson = await resp.json();
-  return respJson.data;
+  const epoch = await resp.json();
+  return epoch;
 }
 
 export function getFinalizedCheckpointEventStream(): EventSource {
   return new EventSource(
-    urlJoin(BEACON_URL, EVENT_STREAM_PATH + `topics=` + BeaconEventType.FINALIZED_CHECKPOINT)
+    urlJoin(BEACON_URL, EVENT_STREAM_PATH + "topics=" + BeaconEventType.FINALIZED_CHECKPOINT)
   );
 }
 
@@ -52,26 +64,35 @@ export async function getLatestFinalizedCheckpoint(): Promise<Checkpoint> {
   return respJson.data.finalized;
 }
 
-export async function getBeaconStateStream(epoch: string): Promise<NodeJS.ReadableStream> {
-  const slot = Number(epoch) * SLOTS_PER_EPOCH;
-  // TODO: modify the debug/getState endpoint to get historical checkpoints (see msgs with wemeetagain)
-  const resp = await fetch(BEACON_URL + STATE_PATH + "head", {
+export async function getBeaconState(config: IBeaconConfig, epoch: Epoch): Promise<phase0.BeaconState> {
+  const slot = epoch * config.params.SLOTS_PER_EPOCH;
+  const resp = await fetch(BEACON_URL + STATE_PATH + slot);
+  if (resp.status !== 200) {
+    throw new Error(`Can't fetch beacon state: ${resp.text()}`);
+  }
+  const state = await resp.json();
+  return state;
+}
+
+export async function getBeaconStateStream(config: IBeaconConfig, epoch: Epoch): Promise<NodeJS.ReadableStream> {
+  const slot = epoch * config.params.SLOTS_PER_EPOCH;
+  const resp = await fetch(BEACON_URL + STATE_PATH + slot, {
     headers: {
       Accept: "application/octet-stream",
     },
   });
   if (resp.status !== 200) {
-    throw new Error("Unable to fetch state");
+    throw new Error(`Error fetching getBeaconStateStream: ${await resp.text()}`);
   }
   return resp.body;
 }
 
-export async function uploadToIPFS(checkpoint: Checkpoint, stateStream: NodeJS.ReadableStream): Promise<IPFSAddResponse> {
+export async function uploadToIPFS(config: IBeaconConfig, state: phase0.BeaconState): Promise<IPFSAddResponse> {
   const formData = new FormData();
   // store checkpoint and state as a directory
   formData.append("file", "", {contentType: "application/x-directory", filename: "folderName"});
-  formData.append("file", JSON.stringify(checkpoint), "folderName%2Fcheckpoint.json");
-  formData.append("file", stateStream, "folderName%2Fstate.ssz");
+  formData.append("file", JSON.stringify(state.finalizedCheckpoint), "folderName%2Fcheckpoint.json");
+  formData.append("file", config.types.phase0.BeaconState.serialize(state), "folderName%2Fstate.ssz");
   const resp = await fetch(IPFS_URL + ADD_FILE_PATH, {
     method: "POST",
     body: formData,

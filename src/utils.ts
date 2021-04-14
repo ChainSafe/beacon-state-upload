@@ -1,4 +1,4 @@
-import { BEACON_URL, IPFS_URL } from "./constants";
+import {BEACON_URL, IPFS_URL} from "./constants";
 
 // copied from @chainsafe/lodestar-validator
 export function urlJoin(...args: string[]): string {
