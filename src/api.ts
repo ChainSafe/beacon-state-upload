@@ -68,7 +68,7 @@ export async function getBeaconState(config: IBeaconConfig, epoch: Epoch): Promi
   const slot = epoch * config.params.SLOTS_PER_EPOCH;
   const resp = await fetch(BEACON_URL + STATE_PATH + slot);
   if (resp.status !== 200) {
-    throw new Error(`Can't fetch beacon state: ${resp.text()}`);
+    throw new Error(`Can't fetch beacon state: ${await resp.text()}`);
   }
   const state = await resp.json();
   return state;

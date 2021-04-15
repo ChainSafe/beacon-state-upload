@@ -13,20 +13,26 @@ import {verifyArgs} from "./utils";
 
 async function uploadStateOnFinalized(): Promise<void> {
   const eventSource = getFinalizedCheckpointEventStream();
+  console.log("Waiting for finalized checkpoints...");
+
+  let alreadyFetchingState = false;
   // TODO: fix `any`
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   eventSource.addEventListener(BeaconEventType.FINALIZED_CHECKPOINT, async (evt: any) => {
     const checkpoint = config.types.phase0.FinalizedCheckpoint.fromJson(JSON.parse(evt.data));
     console.log("Incoming finalized checkpoint: ", checkpoint);
-
+  
     const wsEpoch = await getWSEpoch();
     // @TODO this value is a placeholder.  need to get value from IPFS
     const storedEpoch = 0;
-    if (wsEpoch > storedEpoch) {
+    if (wsEpoch > storedEpoch && !alreadyFetchingState) {
+      alreadyFetchingState = true;
+      console.log("Getting state...");
       const state = await getBeaconState(config, wsEpoch);
-      
-      // @TODO: will uncomment once the above works
-      uploadState(state);
+      console.log(`Found state for wsEpoch ${wsEpoch}`);
+      console.log("Uploading state...");
+      await uploadState(state);
+      alreadyFetchingState = false;
     }
   });
 }
