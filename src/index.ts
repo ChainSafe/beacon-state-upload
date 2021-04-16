@@ -58,7 +58,7 @@ async function uploadState(state: phase0.BeaconState): Promise<void> {
   console.log("Done publishing!");
   
   console.log(ipnsResp);
-  fs.writeFileSync(CID_FILE_PATH, JSON.stringify(ipnsResp), "utf-8");
+  fs.writeFileSync(CID_FILE_PATH, ipfsResp.Hash, "utf-8");
 }
 
 async function main(): Promise<void> {
