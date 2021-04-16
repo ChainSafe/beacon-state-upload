@@ -56,8 +56,9 @@ async function uploadState(state: phase0.BeaconState): Promise<void> {
   console.log("Publish to IPNS...");
   const ipnsResp = await publishToIPNS(ipfsResp.Hash);
   console.log("Done publishing!");
-  
   console.log(ipnsResp);
+
+  // store IPFS hash in local file
   fs.writeFileSync(CID_FILE_PATH, ipfsResp.Hash, "utf-8");
 }
 
