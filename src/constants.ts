@@ -12,3 +12,4 @@ export const WS_EPOCH_PATH = ETH_API_PREFIX + "/lodestar/ws_epoch/";
 
 export const ADD_FILE_PATH = "/api/v0/add";
 export const PUBLISH_IPNS_PATH = "/api/v0/name/publish";
+export const CID_FILE_PATH = "./cid";

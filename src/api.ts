@@ -70,7 +70,7 @@ export async function getBeaconState(config: IBeaconConfig, epoch: Epoch): Promi
   if (resp.status !== 200) {
     throw new Error(`Can't fetch beacon state: ${await resp.text()}`);
   }
-  const state = await resp.json();
+  const state = (await resp.json()).data;
   return state;
 }
 
@@ -87,12 +87,15 @@ export async function getBeaconStateStream(config: IBeaconConfig, epoch: Epoch):
   return resp.body;
 }
 
-export async function uploadToIPFS(config: IBeaconConfig, state: phase0.BeaconState): Promise<IPFSAddResponse> {
+export async function uploadToIPFS(state: phase0.BeaconState): Promise<IPFSAddResponse> {
   const formData = new FormData();
+
   // store checkpoint and state as a directory
   formData.append("file", "", {contentType: "application/x-directory", filename: "folderName"});
-  formData.append("file", JSON.stringify(state.finalizedCheckpoint), "folderName%2Fcheckpoint.json");
-  formData.append("file", config.types.phase0.BeaconState.serialize(state), "folderName%2Fstate.ssz");
+  // TODO: fix `any` and/or get camelcase json
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  formData.append("file", JSON.stringify((state as any).finalized_checkpoint), "folderName%2Fcheckpoint.json");
+  formData.append("file", Buffer.from(JSON.stringify(state)), "folderName%2Fstate.ssz");
   const resp = await fetch(IPFS_URL + ADD_FILE_PATH, {
     method: "POST",
     body: formData,
@@ -105,6 +108,7 @@ export async function uploadToIPFS(config: IBeaconConfig, state: phase0.BeaconSt
 }
 
 export async function publishToIPNS(hash: string, lifetimeHrs = 24): Promise<IPFSPublishIPNSResponse> {
+  console.log("hash: ", hash);
   const resp = await fetch(IPFS_URL + PUBLISH_IPNS_PATH + `?arg=${hash}&lifetime=${lifetimeHrs}h`, {
     method: "POST"
   });
@@ -112,4 +116,13 @@ export async function publishToIPNS(hash: string, lifetimeHrs = 24): Promise<IPF
     throw new Error("Unable to publish to IPNS");
   }
   return await resp.json();
+}
+
+export async function getIPFSCheckpointEpoch(CID: string): Promise<number> {
+  const url = IPFS_URL + `/api/v0/cat?arg=/ipfs/${CID}/checkpoint.json`;
+  console.log("url: ", url);
+  const resp = await fetch(url, {
+    method: "POST"
+  });
+  return Number((await resp.json()).epoch);
 }
