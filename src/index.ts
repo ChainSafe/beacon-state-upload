@@ -36,8 +36,8 @@ async function uploadStateOnFinalized(): Promise<void> {
         storedWSEpoch = await getIPFSWSEpoch(CID);
       }
 
-      console.log("Stored ws epoch: ", storedWSEpoch)
-      console.log("Fetched ws epoch: ", wsEpoch)
+      console.log("Stored ws epoch: ", storedWSEpoch);
+      console.log("Fetched ws epoch: ", wsEpoch);
 
       if (wsEpoch > storedWSEpoch) {
         console.log(`Getting state for weak subjectivity epoch ${wsEpoch}...`);
