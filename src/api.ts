@@ -87,14 +87,14 @@ export async function getBeaconStateStream(config: IBeaconConfig, epoch: Epoch):
   return resp.body;
 }
 
-export async function uploadToIPFS(state: phase0.BeaconState): Promise<IPFSAddResponse> {
+export async function uploadToIPFS(state: phase0.BeaconState, wsEpoch: Epoch): Promise<IPFSAddResponse> {
   const formData = new FormData();
 
   // store checkpoint and state as a directory
   formData.append("file", "", {contentType: "application/x-directory", filename: "folderName"});
   // TODO: fix `any` and/or get camelcase json
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  formData.append("file", JSON.stringify((state as any).finalized_checkpoint), "folderName%2Fcheckpoint.json");
+  formData.append("file", wsEpoch, "folderName%2FwsEpoch.json");
   formData.append("file", Buffer.from(JSON.stringify(state)), "folderName%2Fstate.ssz");
   const resp = await fetch(IPFS_URL + ADD_FILE_PATH, {
     method: "POST",
@@ -108,7 +108,6 @@ export async function uploadToIPFS(state: phase0.BeaconState): Promise<IPFSAddRe
 }
 
 export async function publishToIPNS(hash: string, lifetimeHrs = 24): Promise<IPFSPublishIPNSResponse> {
-  console.log("hash: ", hash);
   const resp = await fetch(IPFS_URL + PUBLISH_IPNS_PATH + `?arg=${hash}&lifetime=${lifetimeHrs}h`, {
     method: "POST"
   });
@@ -118,11 +117,11 @@ export async function publishToIPNS(hash: string, lifetimeHrs = 24): Promise<IPF
   return await resp.json();
 }
 
-export async function getIPFSCheckpointEpoch(CID: string): Promise<number> {
-  const url = IPFS_URL + `/api/v0/cat?arg=/ipfs/${CID}/checkpoint.json`;
+export async function getIPFSWSEpoch(CID: string): Promise<number> {
+  const url = IPFS_URL + `/api/v0/cat?arg=/ipfs/${CID}/wsEpoch.json`;
   console.log("url: ", url);
   const resp = await fetch(url, {
     method: "POST"
   });
-  return Number((await resp.json()).epoch);
+  return Number((await resp.json()));
 }
