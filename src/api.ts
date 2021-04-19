@@ -16,7 +16,7 @@ import {
 } from "./constants";
 import {BeaconEventType, Checkpoint, IPFSAddResponse, IPFSPublishIPNSResponse} from "./types";
 import {urlJoin} from "./utils";
-import {Epoch, phase0} from "@chainsafe/lodestar-types";
+import {Epoch} from "@chainsafe/lodestar-types";
 import {IBeaconConfig} from "@chainsafe/lodestar-config";
 
 export async function getSpec(): Promise<IBeaconParams> {
@@ -64,16 +64,6 @@ export async function getLatestFinalizedCheckpoint(): Promise<Checkpoint> {
   return respJson.data.finalized;
 }
 
-export async function getBeaconState(config: IBeaconConfig, epoch: Epoch): Promise<phase0.BeaconState> {
-  const slot = epoch * config.params.SLOTS_PER_EPOCH;
-  const resp = await fetch(BEACON_URL + STATE_PATH + slot);
-  if (resp.status !== 200) {
-    throw new Error(`Can't fetch beacon state: ${await resp.text()}`);
-  }
-  const state = (await resp.json()).data;
-  return state;
-}
-
 export async function getBeaconStateStream(config: IBeaconConfig, epoch: Epoch): Promise<NodeJS.ReadableStream> {
   const slot = epoch * config.params.SLOTS_PER_EPOCH;
   const resp = await fetch(BEACON_URL + STATE_PATH + slot, {
@@ -87,13 +77,13 @@ export async function getBeaconStateStream(config: IBeaconConfig, epoch: Epoch):
   return resp.body;
 }
 
-export async function uploadToIPFS(state: phase0.BeaconState, wsEpoch: Epoch): Promise<IPFSAddResponse> {
+export async function uploadToIPFS(state: NodeJS.ReadableStream, wsEpoch: Epoch): Promise<IPFSAddResponse> {
   const formData = new FormData();
 
   // store checkpoint and state as a directory
   formData.append("file", "", {contentType: "application/x-directory", filename: "folderName"});
   formData.append("file", wsEpoch, "folderName%2FwsEpoch.json");
-  formData.append("file", Buffer.from(JSON.stringify(state)), "folderName%2Fstate.ssz");
+  formData.append("file", state, "folderName%2Fstate.ssz");
   const resp = await fetch(IPFS_URL + ADD_FILE_PATH, {
     method: "POST",
     body: formData,

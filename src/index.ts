@@ -1,7 +1,7 @@
 import fs from "fs";
 import {config} from "@chainsafe/lodestar-config/mainnet";
 import {
-  getBeaconState,
+  getBeaconStateStream,
   getFinalizedCheckpointEventStream,
   getIPFSWSEpoch,
   getWSEpoch,
@@ -11,7 +11,7 @@ import {
 } from "./api";
 import {BeaconEventType} from "./types";
 import {verifyArgs} from "./utils";
-import {Epoch, phase0} from "@chainsafe/lodestar-types";
+import {Epoch} from "@chainsafe/lodestar-types";
 import {CID_FILE_PATH} from "./constants";
 
 async function uploadStateOnFinalized(): Promise<void> {
@@ -41,7 +41,7 @@ async function uploadStateOnFinalized(): Promise<void> {
 
       if (wsEpoch > storedWSEpoch) {
         console.log(`Getting state for weak subjectivity epoch ${wsEpoch}...`);
-        const state = await getBeaconState(config, wsEpoch);
+        const state = await getBeaconStateStream(config, wsEpoch);
         console.log(`Found state for weak subjectivity epoch ${wsEpoch}`);
         await uploadState(state, wsEpoch);
       }
@@ -50,7 +50,7 @@ async function uploadStateOnFinalized(): Promise<void> {
   });
 }
 
-async function uploadState(state: phase0.BeaconState, wsEpoch: Epoch): Promise<void> {
+async function uploadState(state: NodeJS.ReadableStream, wsEpoch: Epoch): Promise<void> {
   // upload state to ipfs
   console.log("Uploading to IPFS...");
   const ipfsResp = await uploadToIPFS(state, wsEpoch);
