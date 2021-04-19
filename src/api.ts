@@ -35,7 +35,7 @@ export async function nodeIsSynced(configParams: IBeaconParams): Promise<boolean
   }
   const respJson = await resp.json();
   if (respJson.data.sync_distance > configParams.SLOTS_PER_EPOCH) {
-    throw new Error(`Node is syncing ${respJson}`);
+    throw new Error(`Node is syncing ${JSON.stringify(respJson.data)}`);
   }
   return true;
 }
@@ -92,8 +92,6 @@ export async function uploadToIPFS(state: phase0.BeaconState, wsEpoch: Epoch): P
 
   // store checkpoint and state as a directory
   formData.append("file", "", {contentType: "application/x-directory", filename: "folderName"});
-  // TODO: fix `any` and/or get camelcase json
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   formData.append("file", wsEpoch, "folderName%2FwsEpoch.json");
   formData.append("file", Buffer.from(JSON.stringify(state)), "folderName%2Fstate.ssz");
   const resp = await fetch(IPFS_URL + ADD_FILE_PATH, {

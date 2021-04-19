@@ -1,4 +1,3 @@
-// @TODO: change back from port 9596 to 9597
 export const BEACON_URL = process.argv[2] ?? process.env.BEACON_URL ?? "http://localhost:9596";
 export const IPFS_URL = process.argv[3] ?? process.env.IPFS_URL ?? "http://localhost:5001";
 
