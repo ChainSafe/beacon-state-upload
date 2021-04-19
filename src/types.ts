@@ -15,9 +15,9 @@ export interface Checkpoint {
 }
 
 export interface IPFSAddResponse {
-  Hash: string;
-  Name: string;
-  Size: string;
+  path: string;
+  cid: string;
+  Size: number;
 }
 
 export interface IPFSPublishIPNSResponse {

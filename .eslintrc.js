@@ -38,7 +38,6 @@ module.exports = {
     "@typescript-eslint/indent": ["error", 2],
     "@typescript-eslint/member-ordering": "error",
     "@typescript-eslint/no-explicit-any": "error",
-    "@typescript-eslint/no-require-imports": "error",
     "@typescript-eslint/no-unused-vars": ["error", {
       "varsIgnorePattern": "^_"
     }],
@@ -77,7 +76,8 @@ module.exports = {
       "files": ["**/test/**/*.ts"],
       "rules": {
         "import/no-extraneous-dependencies": "off",
-        "@typescript-eslint/no-explicit-any": "off"
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/no-var-requires": "off"
       }
     }
   ]

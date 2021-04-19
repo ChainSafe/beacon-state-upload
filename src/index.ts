@@ -3,11 +3,9 @@ import {config} from "@chainsafe/lodestar-config/mainnet";
 import {
   getBeaconStateStream,
   getFinalizedCheckpointEventStream,
-  getIPFSWSEpoch,
   getWSEpoch,
+  IPFSApiClient,
   nodeIsSynced,
-  publishToIPNS,
-  uploadToIPFS
 } from "./api";
 import {BeaconEventType} from "./types";
 import {verifyArgs} from "./utils";
@@ -16,14 +14,15 @@ import {CID_FILE_PATH} from "./constants";
 
 async function uploadStateOnFinalized(): Promise<void> {
   const eventSource = getFinalizedCheckpointEventStream();
-  console.log("Waiting for finalized checkpoints...");
+  const waitingMsg = "Waiting for finalized checkpoints...";
+  
+  console.log(waitingMsg);
 
   let alreadyFetchingState = false;
   // TODO: fix `any`
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   eventSource.addEventListener(BeaconEventType.FINALIZED_CHECKPOINT, async (evt: any) => {
-    const checkpoint = config.types.phase0.FinalizedCheckpoint.fromJson(JSON.parse(evt.data));
-    console.log(`Incoming finalized checkpoint at epoch ${checkpoint.epoch}`);
+    console.log(`Incoming finalized checkpoint at epoch ${evt.data.epoch}`);
 
     if (!alreadyFetchingState) {
       alreadyFetchingState = true;
@@ -33,7 +32,7 @@ async function uploadStateOnFinalized(): Promise<void> {
       if (fs.existsSync(CID_FILE_PATH)) {
         const CID = fs.readFileSync(CID_FILE_PATH, "utf-8").split("\n")[0]!;
         console.log(CID);
-        storedWSEpoch = await getIPFSWSEpoch(CID);
+        storedWSEpoch = await ipfsApiClient.getIPFSWSEpoch(CID);
       }
 
       console.log("Stored ws epoch: ", storedWSEpoch);
@@ -46,6 +45,7 @@ async function uploadStateOnFinalized(): Promise<void> {
         await uploadState(state, wsEpoch);
       }
       alreadyFetchingState = false;
+      console.log(waitingMsg);
     }
   });
 }
@@ -53,19 +53,21 @@ async function uploadStateOnFinalized(): Promise<void> {
 async function uploadState(state: NodeJS.ReadableStream, wsEpoch: Epoch): Promise<void> {
   // upload state to ipfs
   console.log("Uploading to IPFS...");
-  const ipfsResp = await uploadToIPFS(state, wsEpoch);
+  const cid = await ipfsApiClient.uploadToIPFS(state, wsEpoch);
+  if (cid === undefined) throw new Error("Missing response from IPFS");
 
   // publish to ipns
   console.log("Publishing to IPNS...");
-  const ipnsResp = await publishToIPNS(ipfsResp.Hash);
+  const ipnsResp = await ipfsApiClient.publishToIPNS(cid);
   console.log("Done publishing!");
   console.log(ipnsResp);
 
-  // store IPFS hash in local file
-  fs.writeFileSync(CID_FILE_PATH, ipfsResp.Hash, "utf-8");
+  // store IPFS hash (CID) in local file
+  fs.writeFileSync(CID_FILE_PATH, cid, "utf-8");
 }
 
 async function main(): Promise<void> {
+  ipfsApiClient = new IPFSApiClient();
   verifyArgs();
   // @TODO ? we could also get config params via getSpec(), if needed
   await nodeIsSynced(config.params);
@@ -75,5 +77,7 @@ async function main(): Promise<void> {
     console.error(e.message);
   }
 }
+
+let ipfsApiClient: IPFSApiClient;
 
 main();

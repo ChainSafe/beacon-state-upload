@@ -9,6 +9,4 @@ export const HEAD_FINALITY_CHECKPOINTS_PATH = ETH_API_PREFIX + "/beacon/states/h
 export const STATE_PATH = ETH_API_PREFIX + "/debug/beacon/states/";
 export const WS_EPOCH_PATH = ETH_API_PREFIX + "/lodestar/ws_epoch/";
 
-export const ADD_FILE_PATH = "/api/v0/add";
-export const PUBLISH_IPNS_PATH = "/api/v0/name/publish";
-export const CID_FILE_PATH = "./cid";
+export const CID_FILE_PATH = "./.cid";

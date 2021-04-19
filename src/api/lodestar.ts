@@ -1,21 +1,17 @@
 import EventSource from "eventsource";
 import {IBeaconParams} from "@chainsafe/lodestar-params";
 import fetch from "node-fetch";
-import FormData from "form-data";
 import {
-  ADD_FILE_PATH,
   BEACON_URL,
   CONFIG_SPEC_PATH,
   EVENT_STREAM_PATH,
   HEAD_FINALITY_CHECKPOINTS_PATH,
-  IPFS_URL,
   NODE_SYNCED_PATH,
-  PUBLISH_IPNS_PATH,
   STATE_PATH,
   WS_EPOCH_PATH
-} from "./constants";
-import {BeaconEventType, Checkpoint, IPFSAddResponse, IPFSPublishIPNSResponse} from "./types";
-import {urlJoin} from "./utils";
+} from "../constants";
+import {BeaconEventType, Checkpoint} from "../types";
+import {urlJoin} from "../utils";
 import {Epoch} from "@chainsafe/lodestar-types";
 import {IBeaconConfig} from "@chainsafe/lodestar-config";
 
@@ -75,41 +71,4 @@ export async function getBeaconStateStream(config: IBeaconConfig, epoch: Epoch):
     throw new Error(`Error fetching getBeaconStateStream: ${await resp.text()}`);
   }
   return resp.body;
-}
-
-export async function uploadToIPFS(state: NodeJS.ReadableStream, wsEpoch: Epoch): Promise<IPFSAddResponse> {
-  const formData = new FormData();
-
-  // store checkpoint and state as a directory
-  formData.append("file", "", {contentType: "application/x-directory", filename: "folderName"});
-  formData.append("file", wsEpoch, "folderName%2FwsEpoch.json");
-  formData.append("file", state, "folderName%2Fstate.ssz");
-  const resp = await fetch(IPFS_URL + ADD_FILE_PATH, {
-    method: "POST",
-    body: formData,
-  });
-  if (resp.status !== 200) {
-    throw new Error("Unable to upload to IPFS");
-  }
-  // response is JSON-LD, pop off last entry (the directory containing checkpoint & state)
-  return JSON.parse((await resp.text()).trim().split("\n").pop()!);
-}
-
-export async function publishToIPNS(hash: string, lifetimeHrs = 24): Promise<IPFSPublishIPNSResponse> {
-  const resp = await fetch(IPFS_URL + PUBLISH_IPNS_PATH + `?arg=${hash}&lifetime=${lifetimeHrs}h`, {
-    method: "POST"
-  });
-  if (resp.status !== 200) {
-    throw new Error("Unable to publish to IPNS");
-  }
-  return await resp.json();
-}
-
-export async function getIPFSWSEpoch(CID: string): Promise<number> {
-  const url = IPFS_URL + `/api/v0/cat?arg=/ipfs/${CID}/wsEpoch.json`;
-  console.log("url: ", url);
-  const resp = await fetch(url, {
-    method: "POST"
-  });
-  return Number((await resp.json()));
 }
