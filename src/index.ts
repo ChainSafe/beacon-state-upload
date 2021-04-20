@@ -22,7 +22,7 @@ async function uploadStateOnFinalized(): Promise<void> {
   // TODO: fix `any`
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   eventSource.addEventListener(BeaconEventType.FINALIZED_CHECKPOINT, async (evt: any) => {
-    console.log(`Incoming finalized checkpoint at epoch ${evt.data.epoch}`);
+    console.log(`Incoming finalized checkpoint at epoch ${JSON.parse(evt.data).epoch}`);
 
     if (!alreadyFetchingState) {
       alreadyFetchingState = true;
@@ -70,8 +70,8 @@ async function main(): Promise<void> {
   ipfsApiClient = new IPFSApiClient();
   verifyArgs();
   // @TODO ? we could also get config params via getSpec(), if needed
-  await nodeIsSynced(config.params);
   try {
+    await nodeIsSynced(config.params);
     await uploadStateOnFinalized();
   } catch (e) {
     console.error(e.message);
