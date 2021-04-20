@@ -1,113 +1,83 @@
-import fetch from "node-fetch";
-import FormData = require("form-data");
+import fs from "fs";
+import {config} from "@chainsafe/lodestar-config/mainnet";
+import {
+  getBeaconStateStream,
+  getFinalizedCheckpointEventStream,
+  getWSEpoch,
+  IPFSApiClient,
+  nodeIsSynced,
+} from "./api";
+import {BeaconEventType} from "./types";
+import {verifyArgs} from "./utils";
+import {Epoch} from "@chainsafe/lodestar-types";
+import {CID_FILE_PATH} from "./constants";
 
-const BEACON_URL = process.argv[2] ?? process.env.BEACON_URL ?? "http://localhost:9597";
-const IPFS_URL = process.argv[3] ?? process.env.IPFS_URL ?? "http://localhost:5001";
+async function uploadStateOnFinalized(): Promise<void> {
+  const eventSource = getFinalizedCheckpointEventStream();
+  const waitingMsg = "Waiting for finalized checkpoints...";
+  
+  console.log(waitingMsg);
 
-const HEAD_FINALITY_CHECKPOINTS_PATH = "/eth/v1/beacon/states/head/finality_checkpoints";
-const STATE_PATH = "/eth/v1/debug/beacon/states/";
-const ADD_FILE_PATH = "/api/v0/add";
-const PUBLISH_IPNS_PATH = "/api/v0/name/publish";
-const SLOTS_PER_EPOCH = 32;
+  let alreadyFetchingState = false;
+  // TODO: fix `any`
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  eventSource.addEventListener(BeaconEventType.FINALIZED_CHECKPOINT, async (evt: any) => {
+    console.log(`Incoming finalized checkpoint at epoch ${JSON.parse(evt.data).epoch}`);
 
+    if (!alreadyFetchingState) {
+      alreadyFetchingState = true;
+      const wsEpoch = await getWSEpoch();
+      
+      let storedWSEpoch = 0;
+      if (fs.existsSync(CID_FILE_PATH)) {
+        const CID = fs.readFileSync(CID_FILE_PATH, "utf-8").split("\n")[0]!;
+        console.log(CID);
+        storedWSEpoch = await ipfsApiClient.getIPFSWSEpoch(CID);
+      }
 
-interface Checkpoint {
-  epoch: string;
-  root: string;
-}
+      console.log("Stored ws epoch: ", storedWSEpoch);
+      console.log("Fetched ws epoch: ", wsEpoch);
 
-interface IPFSAddResponse {
-  Hash: string;
-  Name: string;
-  Size: string;
-}
-
-interface IPFSPublishIPNSResponse {
-  Name: string;
-  Value: string;
-}
-
-function verifyArgs(): void {
-  if (!/^(http|https):\/\/[^ "]+$/.test(BEACON_URL)) {
-    throw new Error(`Invalid url for beacon chain url: ${BEACON_URL}`);
-  }
-  if (!/^(http|https):\/\/[^ "]+$/.test(IPFS_URL)) {
-    throw new Error(`Invalid url for IPFS url: ${IPFS_URL}`);
-  }
-}
-
-async function getLatestFinalizedCheckpoint(): Promise<Checkpoint> {
-  const resp = await fetch(BEACON_URL + HEAD_FINALITY_CHECKPOINTS_PATH);
-  if (resp.status !== 200) {
-    throw new Error("Unable to fetch checkpoint");
-  }
-  const respJson = await resp.json();
-  return respJson.data.finalized;
-}
-
-async function getBeaconStateStream(checkpoint: Checkpoint): Promise<NodeJS.ReadableStream> {
-  const slot = Number(checkpoint.epoch) * SLOTS_PER_EPOCH;
-  const resp = await fetch(BEACON_URL + STATE_PATH + "head", {
-    headers: {
-      Accept: "application/octet-stream",
-    },
+      if (wsEpoch > storedWSEpoch) {
+        console.log(`Getting state for weak subjectivity epoch ${wsEpoch}...`);
+        const state = await getBeaconStateStream(config, wsEpoch);
+        console.log(`Found state for weak subjectivity epoch ${wsEpoch}`);
+        await uploadState(state, wsEpoch);
+      }
+      alreadyFetchingState = false;
+      console.log(waitingMsg);
+    }
   });
-  if (resp.status !== 200) {
-    throw new Error("Unable to fetch state");
-  }
-  return resp.body;
 }
 
-async function uploadToIPFS(checkpoint: Checkpoint, stateStream: NodeJS.ReadableStream): Promise<IPFSAddResponse> {
-  const formData = new FormData();
-  // store checkpoint and state as a directory
-  formData.append("file", "", {contentType: "application/x-directory", filename: "folderName"});
-  formData.append("file", JSON.stringify(checkpoint), "folderName%2Fcheckpoint.json");
-  formData.append("file", stateStream, "folderName%2Fstate.ssz");
-  const resp = await fetch(IPFS_URL + ADD_FILE_PATH, {
-    method: "POST",
-    body: formData,
-  });
-  if (resp.status !== 200) {
-    throw new Error("Unable to upload to IPFS");
-  }
-  // response is JSON-LD, pop off last entry (the directory containing checkpoint & state)
-  return JSON.parse((await resp.text()).trim().split("\n").pop()!);
+async function uploadState(state: NodeJS.ReadableStream, wsEpoch: Epoch): Promise<void> {
+  // upload state to ipfs
+  console.log("Uploading to IPFS...");
+  const cid = await ipfsApiClient.uploadToIPFS(state, wsEpoch);
+  if (cid === undefined) throw new Error("Missing response from IPFS");
+
+  // publish to ipns
+  console.log("Publishing to IPNS...");
+  const ipnsResp = await ipfsApiClient.publishToIPNS(cid);
+  console.log("Done publishing!");
+  console.log(ipnsResp);
+
+  // store IPFS hash (CID) in local file
+  fs.writeFileSync(CID_FILE_PATH, cid, "utf-8");
 }
 
-async function publishToIPNS(hash: string, lifetimeHrs = 24): Promise<IPFSPublishIPNSResponse> {
-  const resp = await fetch(IPFS_URL + PUBLISH_IPNS_PATH + `?arg=${hash}&lifetime=${lifetimeHrs}h`, {
-    method: "POST"
-  });
-  if (resp.status !== 200) {
-    throw new Error("Unable to publish to IPNS");
-  }
-  return await resp.json();
-}
-
-async function saveState() {
+async function main(): Promise<void> {
+  ipfsApiClient = new IPFSApiClient();
+  verifyArgs();
+  // @TODO ? we could also get config params via getSpec(), if needed
   try {
-    // request head finality checkpoints
-    console.log("Fetching latest finalized checkpoint");
-    const checkpoint = await getLatestFinalizedCheckpoint();
-    console.log("Finalized checkpoint", checkpoint);
-
-    // request finalized state
-    console.log("Fetching finalized beacon state");
-    const stateStream = await getBeaconStateStream(checkpoint);
-
-    // upload state to ipfs
-    console.log("Uploading to ipfs")
-    const ipfsResp = await uploadToIPFS(checkpoint, stateStream);
-
-    // publish to ipns
-    console.log("Publish to ipns")
-    const ipnsResp = await publishToIPNS(ipfsResp.Hash);
-    console.log(ipnsResp);
+    await nodeIsSynced(config.params);
+    await uploadStateOnFinalized();
   } catch (e) {
     console.error(e.message);
   }
 }
 
-verifyArgs();
-saveState();
+let ipfsApiClient: IPFSApiClient;
+
+main();
