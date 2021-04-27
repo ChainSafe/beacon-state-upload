@@ -39,7 +39,7 @@ export async function nodeIsSynced(configParams: IBeaconParams): Promise<boolean
 export async function getWSEpoch(): Promise<Epoch> {
   const resp = await fetch(BEACON_URL + WS_EPOCH_PATH);
   if (resp.status !== 200) {
-    throw new Error("Unable to fetch node sync status");
+    throw new Error("Unable to fetch ws epoch");
   }
   const epoch = await resp.json();
   return epoch;
