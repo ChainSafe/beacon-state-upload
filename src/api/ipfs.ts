@@ -11,7 +11,7 @@ export class IPFSApiClient {
     this.client = ipfsClient();
   }
 
-  async uploadToIPFS(state: NodeJS.ReadableStream, wsEpoch: Epoch): Promise<string | undefined> {
+  async uploadToIPFS(state: Buffer, wsEpoch: Epoch): Promise<string | undefined> {
     const dirName = "tmp";
     const files = [
       {

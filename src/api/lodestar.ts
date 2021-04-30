@@ -60,7 +60,7 @@ export async function getLatestFinalizedCheckpoint(): Promise<Checkpoint> {
   return respJson.data.finalized;
 }
 
-export async function getBeaconStateStream(config: IBeaconConfig, epoch: Epoch): Promise<NodeJS.ReadableStream> {
+export async function getBeaconStateBuffer(config: IBeaconConfig, epoch: Epoch): Promise<Buffer> {
   const slot = epoch * config.params.SLOTS_PER_EPOCH;
   const resp = await fetch(BEACON_URL + STATE_PATH + slot, {
     headers: {
@@ -70,5 +70,5 @@ export async function getBeaconStateStream(config: IBeaconConfig, epoch: Epoch):
   if (resp.status !== 200) {
     throw new Error(`Error fetching getBeaconStateStream: ${await resp.text()}`);
   }
-  return resp.body;
+  return await resp.buffer();
 }

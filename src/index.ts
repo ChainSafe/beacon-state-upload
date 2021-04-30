@@ -1,7 +1,7 @@
 import fs from "fs";
 import {config} from "@chainsafe/lodestar-config/mainnet";
 import {
-  getBeaconStateStream,
+  getBeaconStateBuffer,
   getFinalizedCheckpointEventStream,
   getWSEpoch,
   IPFSApiClient,
@@ -10,7 +10,7 @@ import {
 import {BeaconEventType} from "./types";
 import {verifyArgs} from "./utils";
 import {Epoch} from "@chainsafe/lodestar-types";
-import {CID_FILE_PATH, WAITING_MSG} from "./constants";
+import {CID_FILE_PATH, STATE_ROOT_FILE_PATH, WAITING_MSG} from "./constants";
 
 let alreadyFetchingState = false;
 
@@ -18,20 +18,21 @@ async function getAndUploadState(wsEpoch: Epoch) {
   console.log(`Getting state for weak subjectivity epoch ${wsEpoch}...`);
   let state;
   try {
-    state = await getBeaconStateStream(config, wsEpoch);
+    state = await getBeaconStateBuffer(config, wsEpoch);
   } catch (error) {
     throw new Error(`State retrieval/storage error for weak subjectivity epoch ${wsEpoch}.  Retrying.  Reason: ${error.message}`);
   }
   if (!state) throw new Error(`State at weak subjectivity epoch ${wsEpoch} not found`);
   console.log(`Found state for weak subjectivity epoch ${wsEpoch}`);
+
+  // store ws state root locally
+  fs.writeFileSync(STATE_ROOT_FILE_PATH, config.types.phase0.BeaconState.hashTreeRoot(config.types.phase0.BeaconState.deserialize(state)), "utf-8");
+
   const cid = await uploadState(state, wsEpoch);
   
   // store IPFS hash (CID) in local file
   fs.writeFileSync(CID_FILE_PATH, cid, "utf-8");
 
-  // store state root
-  // fs.writeFileSync(STATE_ROOT_FILE_PATH, config.types.phase0.BeaconState.hashTreeRoot(state), "utf-8");
-  
   console.log(WAITING_MSG);
   alreadyFetchingState = false;
 }
@@ -72,7 +73,7 @@ async function uploadStateOnFinalized(): Promise<void> {
   });
 }
 
-async function uploadState(state: NodeJS.ReadableStream, wsEpoch: Epoch): Promise<string> {
+async function uploadState(state: Buffer, wsEpoch: Epoch): Promise<string> {
   // upload state to ipfs
   console.log(`Uploading state at weak subjectivity epoch ${wsEpoch} to IPFS...`);
   const cid = await ipfsApiClient.uploadToIPFS(state, wsEpoch);
