@@ -10,6 +10,6 @@ export const STATE_PATH = ETH_API_PREFIX + "/debug/beacon/states/";
 export const WS_EPOCH_PATH = ETH_API_PREFIX + "/lodestar/ws_epoch/";
 
 export const CID_FILE_PATH = "./.cid";
-export const STATE_ROOT_FILE_PATH = "./ws-state-root.ssz";
+export const WS_STATE_DATA_FILE_PATH = "./weakSubjectivityState.json";
 
 export const WAITING_MSG = "Waiting for finalized checkpoints...";
