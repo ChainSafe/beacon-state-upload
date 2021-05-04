@@ -36,7 +36,7 @@ async function getAndUploadState(wsEpoch: Epoch): Promise<void> {
   const stateData = {stateRoot, ipfsPath: "/ipfs/" + cid + "/state.ssz"};
 
   // store stateData locally
-  fs.writeFileSync(WS_STATE_DATA_FILE_PATH, JSON.stringify(stateData), "utf-8");
+  fs.writeFileSync(WS_STATE_DATA_FILE_PATH, JSON.stringify(stateData, null, 2), "utf-8");
   
   // store IPFS hash (CID) in local file
   fs.writeFileSync(CID_FILE_PATH, cid, "utf-8");
