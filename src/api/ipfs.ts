@@ -50,7 +50,7 @@ export class IPFSApiClient {
       const resp = this.client.cat(`/ipfs/${CID}/wsEpoch.json`);
       return Number((await resp[Symbol.asyncIterator]().next()).value.toString());
     } catch (error) {
-      throw new Error("Can't get WS Epoch from IPFS");
+      throw new Error(`Can't get WS Epoch from IPFS: ${error}`);
     }
   }
 }
