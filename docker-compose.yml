@@ -7,6 +7,6 @@ services:
     volumes:
       - bsu:/data
     command:
-      http://localhost:9597 http://localhost:5001 /data/
+      http://localhost:9596 http://localhost:5001 /data/
 volumes:
   bsu:
