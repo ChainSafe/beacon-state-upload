@@ -10,7 +10,7 @@ import {
 import {BeaconEventType} from "./types";
 import {verifyArgs} from "./utils";
 import {Epoch} from "@chainsafe/lodestar-types";
-import {CID_FILE_PATH, ROOT_DIR, WS_STATE_DATA_FILE_PATH} from "./constants";
+import {CID_FILE_PATH, WS_STATE_DATA_FILE_PATH} from "./constants";
 import {toHexString} from "@chainsafe/ssz";
 
 async function getAndUploadState(wsEpoch: Epoch): Promise<void> {
