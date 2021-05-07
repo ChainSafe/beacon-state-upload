@@ -68,7 +68,7 @@ export async function getBeaconStateBuffer(config: IBeaconConfig, epoch: Epoch):
     },
   });
   if (resp.status !== 200) {
-    throw new Error(`Error fetching getBeaconStateStream: ${await resp.text()}`);
+    throw new Error(`Error fetching getBeaconStateStream: ${await resp.json()}`);
   }
   return await resp.buffer();
 }

@@ -13,8 +13,6 @@ import {Epoch} from "@chainsafe/lodestar-types";
 import {CID_FILE_PATH, WS_STATE_DATA_FILE_PATH} from "./constants";
 import {toHexString} from "@chainsafe/ssz";
 
-let alreadyFetchingState = false;
-
 async function getAndUploadState(wsEpoch: Epoch): Promise<void> {
   console.log(`Getting state for weak subjectivity epoch ${wsEpoch}...`);
   let state;
@@ -42,10 +40,12 @@ async function getAndUploadState(wsEpoch: Epoch): Promise<void> {
   fs.writeFileSync(CID_FILE_PATH, cid, "utf-8");
 
   console.log("Waiting for finalized checkpoints...");
-  alreadyFetchingState = false;
 }
 
 async function uploadStateOnFinalized(): Promise<void> {
+  // allow only one getState request at a time to prevent overloading the beacon node
+  let alreadyFetchingState = false;
+
   const eventSource = getFinalizedCheckpointEventStream();
   
   console.log("Waiting for finalized checkpoints...");
@@ -65,16 +65,20 @@ async function uploadStateOnFinalized(): Promise<void> {
         storedWSEpoch = await ipfsApiClient.getIPFSWSEpoch(CID);
       }
 
-      console.log("Weak subjectivty epoch from IPNS: ", storedWSEpoch);
-      console.log("Weak subjectivty epoch from beacon node: ", wsEpoch);
+      console.log("Weak subjectivity epoch from IPNS: ", storedWSEpoch);
+      console.log("Weak subjectivity epoch from beacon node: ", wsEpoch);
 
       if (wsEpoch > storedWSEpoch) {
-        alreadyFetchingState = true;
         try {
+          alreadyFetchingState = true;
           await getAndUploadState(wsEpoch);
+          alreadyFetchingState = false;
         } catch (error) {
           console.error(error.message);
-          setTimeout(async () => await getAndUploadState(wsEpoch), 5000);
+          setTimeout(async () => {
+            await getAndUploadState(wsEpoch);
+            alreadyFetchingState = false;
+          }, 5000);
         }
       }
     }
