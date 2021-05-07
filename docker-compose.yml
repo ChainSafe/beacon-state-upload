@@ -4,6 +4,6 @@ services:
     network_mode: host
     build: .
     volumes:
-      - "bsu:/data"
+      - bsu:/data
 volumes:
   bsu:
