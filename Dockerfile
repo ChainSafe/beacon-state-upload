@@ -2,6 +2,7 @@ FROM node:14-alpine as build
 
 ENV BEACON_URL=http://localhost:9597
 ENV IPFS_URL=http://localhost:5001
+ENV ROOT_DIR=/data/
 
 WORKDIR /usr/app
 

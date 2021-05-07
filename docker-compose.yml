@@ -1,9 +1,12 @@
-version: "2.2"
+version: "3"
 services:
   bsu:
+    image: bsu
     network_mode: host
     build: .
     volumes:
       - bsu:/data
+    command:
+      http://localhost:9597 http://localhost:5001 /data/
 volumes:
   bsu:
