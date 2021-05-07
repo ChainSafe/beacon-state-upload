@@ -10,7 +10,7 @@ import {
 import {BeaconEventType} from "./types";
 import {verifyArgs} from "./utils";
 import {Epoch} from "@chainsafe/lodestar-types";
-import {CID_FILE_PATH, WS_STATE_DATA_FILE_PATH, WAITING_MSG} from "./constants";
+import {CID_FILE_PATH, WS_STATE_DATA_FILE_PATH} from "./constants";
 import {toHexString} from "@chainsafe/ssz";
 
 let alreadyFetchingState = false;
@@ -41,14 +41,14 @@ async function getAndUploadState(wsEpoch: Epoch): Promise<void> {
   // store IPFS hash (CID) in local file
   fs.writeFileSync(CID_FILE_PATH, cid, "utf-8");
 
-  console.log(WAITING_MSG);
+  console.log("Waiting for finalized checkpoints...");
   alreadyFetchingState = false;
 }
 
 async function uploadStateOnFinalized(): Promise<void> {
   const eventSource = getFinalizedCheckpointEventStream();
   
-  console.log(WAITING_MSG);
+  console.log("Waiting for finalized checkpoints...");
 
   // TODO: fix `any`
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
