@@ -1,6 +1,7 @@
 version: "3"
 services:
   bsu:
+    restart: always
     image: bsu
     network_mode: host
     build: .
