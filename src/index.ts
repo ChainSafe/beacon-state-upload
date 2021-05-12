@@ -71,7 +71,7 @@ async function uploadStateOnFinalized(): Promise<void> {
 
       if (wsEpoch > storedWSEpoch) {
         alreadyFetchingState = true;
-        retry(async () => {
+        await retry(async () => {
           await getAndUploadState(wsEpoch);
         }, {
           retries: 3,
