@@ -1,4 +1,5 @@
 import fs from "fs";
+import retry from "async-retry";
 import {config} from "@chainsafe/lodestar-config/mainnet";
 import {
   getBeaconStateBuffer,
@@ -69,17 +70,17 @@ async function uploadStateOnFinalized(): Promise<void> {
       console.log("Weak subjectivity epoch from beacon node: ", wsEpoch);
 
       if (wsEpoch > storedWSEpoch) {
-        try {
-          alreadyFetchingState = true;
+        alreadyFetchingState = true;
+        retry(async () => {
           await getAndUploadState(wsEpoch);
-          alreadyFetchingState = false;
-        } catch (error) {
-          console.error(error.message);
-          setTimeout(async () => {
-            await getAndUploadState(wsEpoch);
-            alreadyFetchingState = false;
-          }, 5000);
-        }
+        }, {
+          retries: 3,
+          minTimeout: 5000,
+          onRetry: (error) => {
+            console.error(error.message);
+          }
+        });
+        alreadyFetchingState = false;
       }
     }
   });
