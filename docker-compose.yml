@@ -1,0 +1,13 @@
+version: "3"
+services:
+  bsu:
+    restart: always
+    image: bsu
+    network_mode: host
+    build: .
+    volumes:
+      - bsu:/data
+    command:
+      http://localhost:9596 http://localhost:5001 /data/
+volumes:
+  bsu:
